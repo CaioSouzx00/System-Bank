@@ -1,0 +1,52 @@
+name: Deploy — Production
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  deploy-production:
+    name: Deploy para Produção
+    runs-on: ubuntu-latest
+    environment: production   # requer aprovação manual no GitHub
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e push API
+        uses: docker/build-push-action@v5
+        with:
+          context: api-rust
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/api:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/api:latest
+
+      - name: Build e push COBOL Worker
+        uses: docker/build-push-action@v5
+        with:
+          context: batch-cobol
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/cobol:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/cobol:latest
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/system-bank
+            export API_TAG=${{ github.ref_name }}
+            export COBOL_TAG=${{ github.ref_name }}
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans

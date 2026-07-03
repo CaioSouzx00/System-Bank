@@ -1,0 +1,36 @@
+# system-bank — .gitignore
+
+# Rust
+api-rust/target/
+api-rust/**/*.pdb
+
+# COBOL binários compilados
+batch-cobol/bin/
+batch-cobol/io/input/*.dat
+batch-cobol/io/output/*.out
+
+# Variáveis de ambiente — NUNCA commitar
+infra/docker/.env
+*.env
+!*.env.example
+
+# Docker volumes locais
+postgres_data/
+rabbitmq_data/
+grafana_data/
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Cargo.lock — manter no repo (binário final)
+# Cargo.lock is intentionally committed for binary crates

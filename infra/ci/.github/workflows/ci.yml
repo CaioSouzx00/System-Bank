@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint-and-test-rust:
+    name: Rust — Lint & Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: system_bank_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      rabbitmq:
+        image: rabbitmq:3.13-alpine
+        ports: ["5672:5672"]
+        options: >-
+          --health-cmd "rabbitmq-diagnostics ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            api-rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('api-rust/Cargo.lock') }}
+
+      - name: Instalar Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Fmt check
+        working-directory: api-rust
+        run: cargo fmt --check
+
+      - name: Clippy
+        working-directory: api-rust
+        run: cargo clippy -- -D warnings
+
+      - name: Auditoria de segurança
+        working-directory: api-rust
+        run: |
+          cargo install cargo-audit --quiet
+          cargo audit
+
+      - name: Testes
+        working-directory: api-rust
+        env:
+          DATABASE_URL: postgres://testuser:testpass@localhost:5432/system_bank_test
+          AMQP_URL: amqp://guest:guest@localhost:5672
+          JWT_SECRET: test_secret_min_32_chars_for_ci_only
+        run: cargo test --all-features
+
+  build-cobol:
+    name: COBOL — Compilação
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar GnuCOBOL
+        run: sudo apt-get update && sudo apt-get install -y gnucobol
+
+      - name: Compilar todos os programas
+        working-directory: batch-cobol
+        run: make all
+
+  docker-build:
+    name: Docker — Build das imagens
+    runs-on: ubuntu-latest
+    needs: [lint-and-test-rust, build-cobol]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API Rust
+        run: docker build -f api-rust/Dockerfile api-rust/ -t system-bank-api:ci
+
+      - name: Build COBOL Worker
+        run: docker build -f batch-cobol/Dockerfile batch-cobol/ -t system-bank-cobol:ci
