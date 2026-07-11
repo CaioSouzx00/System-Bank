@@ -35,6 +35,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      DATABASE_URL: postgres://testuser:testpass@localhost:5432/system_bank_test
+      AMQP_URL: amqp://guest:guest@localhost:5672
+      JWT_SECRET: test_secret_min_32_chars_for_ci_only
+
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +57,12 @@ jobs:
         with:
           components: clippy, rustfmt
 
+      - name: Instalar sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres --quiet
+
+      - name: Rodar migrations no banco de teste
+        run: sqlx migrate run --source ../migrations
+
       - name: Fmt check
         working-directory: api-rust
         run: cargo fmt --check
@@ -68,10 +79,6 @@ jobs:
 
       - name: Testes
         working-directory: api-rust
-        env:
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/system_bank_test
-          AMQP_URL: amqp://guest:guest@localhost:5672
-          JWT_SECRET: test_secret_min_32_chars_for_ci_only
         run: cargo test --all-features
 
   build-cobol:
