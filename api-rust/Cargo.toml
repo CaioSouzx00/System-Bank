@@ -26,3 +26,7 @@ dotenv = "0.15"
 [dev-dependencies]
 axum-test = "14"
 tokio-test = "0.4"
+
+[[bin]]
+name = "worker"
+path = "src/bin/worker.rs"
