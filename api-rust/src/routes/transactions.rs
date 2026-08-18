@@ -17,7 +17,11 @@ use crate::{
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/transactions", post(create_transaction))
+        .route(
+            "/transactions",
+            post(create_transaction)
+                .route_layer(axum::middleware::from_fn(crate::middleware::rate_limit::account_rate_limit)),
+        )
         .route("/transactions/:id", get(get_transaction))
 }
 
