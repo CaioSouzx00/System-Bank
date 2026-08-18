@@ -18,6 +18,7 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/accounts", get(list_accounts).post(create_account))
         .route("/accounts/:id", get(get_account))
+        .route("/accounts/:id/block", post(block_account))
 }
 
 async fn list_accounts(
@@ -43,5 +44,18 @@ async fn create_account(
     Json(body): Json<CreateAccountRequest>,
 ) -> AppResult<Json<Account>> {
     let account = account_service::create(&state.db, body, claims.sub).await?;
+    Ok(Json(account))
+}
+
+async fn block_account(
+    State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<Account>> {
+    if claims.role != "ADMIN" {
+        return Err(crate::errors::AppError::Unauthorized); // Simplification: Using Unauthorized for lack of permissions, unless Forbidden exists.
+    }
+    
+    let account = account_service::block(&state.db, id).await?;
     Ok(Json(account))
 }
