@@ -20,9 +20,18 @@ pub async fn declare_queues(channel: &Channel) -> Result<()> {
         ..Default::default()
     };
 
+    let mut dlq_args = FieldTable::default();
+    dlq_args.insert(
+        "x-dead-letter-exchange".into(),
+        lapin::types::AMQPValue::LongString("".into()),
+    );
+    dlq_args.insert(
+        "x-dead-letter-routing-key".into(),
+        lapin::types::AMQPValue::LongString(QUEUE_DLQ.into()),
+    );
+
     for queue in [
         QUEUE_TRANSACTIONS_PENDING,
-        QUEUE_TRANSACTIONS_PROCESSED,
         QUEUE_TRANSACTIONS_FAILED,
         QUEUE_BATCH_DAILY_CLOSING,
         QUEUE_DLQ,
@@ -31,6 +40,15 @@ pub async fn declare_queues(channel: &Channel) -> Result<()> {
             .queue_declare(queue, opts.clone(), FieldTable::default())
             .await?;
     }
+
+    // Configura transactions.processed com DLQ
+    channel
+        .queue_declare(
+            QUEUE_TRANSACTIONS_PROCESSED,
+            opts.clone(),
+            dlq_args,
+        )
+        .await?;
 
     Ok(())
 }
