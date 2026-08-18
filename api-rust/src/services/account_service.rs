@@ -69,3 +69,17 @@ async fn generate_account_number(db: &PgPool, agency: &str) -> AppResult<String>
     let digit = base.chars().map(|c| c.to_digit(10).unwrap_or(0)).sum::<u32>() % 10;
     Ok(format!("{}-{}", base, digit))
 }
+
+pub async fn block(db: &PgPool, id: Uuid) -> AppResult<Account> {
+    sqlx::query_as!(
+        Account,
+        r#"UPDATE accounts
+           SET status = 'BLOCKED'
+           WHERE id = $1
+           RETURNING id, agency, account_number, owner_id, balance, status as "status: _", created_at"#,
+        id
+    )
+    .fetch_optional(db)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Conta não encontrada".into()))
+}
