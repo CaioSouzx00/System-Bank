@@ -6,7 +6,7 @@ use crate::{
     models::account::{Account, CreateAccountRequest},
 };
 
-pub async fn find_by_owner(db: &PgPool, owner_id: Uuid) -> AppResult<Vec<Account>> {
+pub async fn list_by_owner(db: &PgPool, owner_id: Uuid) -> AppResult<Vec<Account>> {
     let accounts = sqlx::query_as!(
         Account,
         r#"SELECT id, agency, account_number, owner_id, balance, status as "status: _", created_at
@@ -50,6 +50,23 @@ pub async fn create(db: &PgPool, req: CreateAccountRequest, owner_id: Uuid) -> A
     )
     .fetch_one(db)
     .await?;
+
+    Ok(account)
+}
+
+pub async fn block_account(db: &PgPool, id: Uuid, owner_id: Uuid) -> AppResult<Account> {
+    let account = sqlx::query_as!(
+        Account,
+        r#"UPDATE accounts
+           SET status = 'BLOCKED'
+           WHERE id = $1 AND owner_id = $2 AND status != 'CLOSED'
+           RETURNING id, agency, account_number, owner_id, balance, status as "status: _", created_at"#,
+        id,
+        owner_id
+    )
+    .fetch_optional(db)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Conta não encontrada ou não pode ser bloqueada".into()))?;
 
     Ok(account)
 }

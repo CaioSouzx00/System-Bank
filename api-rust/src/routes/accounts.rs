@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    routing::{get, post},
+    routing::{get, post, patch},
     Extension, Json, Router,
 };
 use std::sync::Arc;
@@ -18,13 +18,14 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/accounts", get(list_accounts).post(create_account))
         .route("/accounts/:id", get(get_account))
+        .route("/accounts/:id/block", patch(block_account))
 }
 
 async fn list_accounts(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
 ) -> AppResult<Json<Vec<Account>>> {
-    let accounts = account_service::find_by_owner(&state.db, claims.sub).await?;
+    let accounts = account_service::list_by_owner(&state.db, claims.sub).await?;
     Ok(Json(accounts))
 }
 
@@ -43,5 +44,14 @@ async fn create_account(
     Json(body): Json<CreateAccountRequest>,
 ) -> AppResult<Json<Account>> {
     let account = account_service::create(&state.db, body, claims.sub).await?;
+    Ok(Json(account))
+}
+
+async fn block_account(
+    State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<Account>> {
+    let account = account_service::block_account(&state.db, id, claims.sub).await?;
     Ok(Json(account))
 }
