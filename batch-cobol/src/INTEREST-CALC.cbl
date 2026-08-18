@@ -33,8 +33,12 @@
        01  WS-INPUT-PATH       PIC X(200).
        01  WS-OUTPUT-PATH      PIC X(200).
        01  WS-EOF              PIC X(01) VALUE 'N'.
+       01  WS-MONTHLY-RATE     PIC 9(03)V9(10).
        01  WS-DAILY-RATE       PIC 9(03)V9(10).
        01  WS-INTEREST         PIC S9(15)V99.
+       01  WS-NEW-BALANCE      PIC S9(15)V99.
+       01  WS-INTEREST-OUT     PIC -9(14).99.
+       01  WS-NEW-BAL-OUT      PIC -9(14).99.
        01  WS-COMPOUND-FACTOR  PIC 9(03)V9(10).
 
        PROCEDURE DIVISION.
@@ -57,9 +61,13 @@
            STOP RUN.
 
        CALC-INTEREST.
-           *> Taxa diária = (1 + taxa_anual)^(1/365) - 1
+           *> Taxa mensal = taxa_anual / 12
+           COMPUTE WS-MONTHLY-RATE =
+               (DA-RATE / 100) / 12
+
+           *> Taxa diaria = (1 + taxa_mensal)^(1/30) - 1
            COMPUTE WS-DAILY-RATE =
-               (1 + DA-RATE / 100) ** (1 / 365) - 1
+               (1 + WS-MONTHLY-RATE) ** (1 / 30) - 1
 
            *> Fator composto = (1 + taxa_diaria)^dias
            COMPUTE WS-COMPOUND-FACTOR =
@@ -68,8 +76,14 @@
            COMPUTE WS-INTEREST = DA-BALANCE *
                (WS-COMPOUND-FACTOR - 1)
 
+           COMPUTE WS-NEW-BALANCE = DA-BALANCE + WS-INTEREST
+
+           MOVE WS-INTEREST TO WS-INTEREST-OUT
+           MOVE WS-NEW-BALANCE TO WS-NEW-BAL-OUT
+
            MOVE FUNCTION CONCATENATE(
                DA-ACCOUNT-ID ','
-               FUNCTION TRIM(WS-INTEREST LEADING)
+               FUNCTION TRIM(WS-INTEREST-OUT LEADING) ','
+               FUNCTION TRIM(WS-NEW-BAL-OUT LEADING)
            ) TO IO-RECORD
            WRITE IO-RECORD.
