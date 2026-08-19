@@ -54,3 +54,28 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_audit_transaction_status
 AFTER UPDATE ON transactions
 FOR EACH ROW EXECUTE FUNCTION log_transaction_change();
+
+-- Trigger automático: registra mudança de status ou balance em accounts
+CREATE OR REPLACE FUNCTION log_account_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.status IS DISTINCT FROM NEW.status OR OLD.balance IS DISTINCT FROM NEW.balance THEN
+        INSERT INTO audit_logs (actor, action, entity, entity_id, payload)
+        VALUES (
+            current_setting('app.current_user_id', true)::uuid,
+            'ACCOUNT_UPDATE',
+            'accounts',
+            NEW.id,
+            jsonb_build_object(
+                'old', jsonb_build_object('status', OLD.status, 'balance', OLD.balance),
+                'new', jsonb_build_object('status', NEW.status, 'balance', NEW.balance)
+            )
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER audit_accounts_changes
+AFTER UPDATE ON accounts
+FOR EACH ROW EXECUTE FUNCTION log_account_change();
