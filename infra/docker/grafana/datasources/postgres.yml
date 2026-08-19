@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL
+    uid: postgres
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: bankuser
+    database: system_bank
+    secureJsonData:
+      password: bankpass
+    jsonData:
+      sslmode: 'disable'
+    version: 1
+    editable: true

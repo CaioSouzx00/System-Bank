@@ -1,0 +1,51 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: 'Batch Alerts'
+    folder: 'Batch Operations'
+    interval: 1m
+    rules:
+      - uid: batch-failed
+        title: 'Job Batch Falhou'
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: postgres
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              editorMode: code
+              format: table
+              rawQuery: true
+              rawSql: "SELECT 1 FROM batch_jobs WHERE status = 'FAILED' AND started_at >= NOW() - INTERVAL '5 minutes'"
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'Um ou mais jobs batch falharam nos últimos 5 minutos'
+        labels:
+          severity: critical
+
+      - uid: batch-duration
+        title: 'Job Batch muito longo'
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: postgres
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              editorMode: code
+              format: table
+              rawQuery: true
+              rawSql: "SELECT 1 FROM batch_jobs WHERE status = 'RUNNING' AND started_at <= NOW() - INTERVAL '10 minutes'"
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: 'Existem jobs rodando há mais de 10 minutos'
+        labels:
+          severity: warning
