@@ -38,8 +38,12 @@ rustls-pemfile = "2.2.0"
 base64 = "0.23.1"
 [dev-dependencies]
 axum-test = "14"
+sqlx = { version = "0.7", features = ["macros"] }
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15.0", features = ["postgres", "rabbitmq"] }
 tokio-test = "0.4"
 
 [[bin]]
 name = "worker"
 path = "src/bin/worker.rs"
+

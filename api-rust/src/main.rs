@@ -6,19 +6,7 @@ use std::env;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
-pub mod errors;
-pub mod middleware;
-pub mod models;
-pub mod queue;
-pub mod routes;
-pub mod services;
-pub mod telemetry;
-pub mod tls;
-
-pub struct AppState {
-    pub db: sqlx::PgPool,
-    pub amqp_channel: lapin::Channel,
-}
+use system_bank_api::{app::create_router, queue, telemetry, tls, AppState};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -59,16 +47,7 @@ async fn main() -> Result<()> {
     });
 
     // 6. Rotas
-    let app = Router::new()
-        .nest("/health", routes::health::router())
-        .nest("/accounts", routes::accounts::router())
-        .nest("/transactions", routes::transactions::router())
-        .nest("/pix", routes::pix::router())
-        .nest("/internal", routes::internal::router())
-        .with_state(state)
-        // Global middleware
-        .layer(axum::middleware::from_fn(middleware::tracing::tracing_middleware))
-        .layer(axum::middleware::from_fn(middleware::rate_limit::rate_limiter));
+    let app = create_router(state);
 
     // 7. Servidor
     let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
