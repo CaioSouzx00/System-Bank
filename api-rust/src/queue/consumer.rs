@@ -7,6 +7,26 @@ use sqlx::PgPool;
 use tracing::{error, info, instrument, warn};
 use futures_util::stream::StreamExt;
 use std::time::Duration;
+use opentelemetry::propagation::Extractor;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+use tracing::Instrument;
+
+struct HeaderExtractor<'a>(&'a FieldTable);
+
+impl<'a> Extractor for HeaderExtractor<'a> {
+    fn get(&self, key: &str) -> Option<&str> {
+        if let Some(val) = self.0.inner().get(key) {
+            if let lapin::types::AMQPValue::LongString(s) = val {
+                return Some(s.as_str());
+            }
+        }
+        None
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0.inner().keys().map(|k| k.as_str()).collect()
+    }
+}
 
 use crate::models::transaction::{Transaction, TransactionStatus};
 use crate::queue::publisher::{QUEUE_TRANSACTIONS_FAILED, QUEUE_TRANSACTIONS_PROCESSED};
@@ -27,48 +47,65 @@ pub async fn consume_transactions_processed(pool: PgPool, channel: Channel) -> a
         if let Ok(delivery) = delivery {
             let tx_id = delivery.properties.message_id().clone();
             
-            let mut success = false;
-            // 3 tentativas de processamento
-            for attempt in 1..=3 {
-                match process_message(&pool, &delivery.data).await {
-                    Ok(_) => {
-                        success = true;
-                        break;
-                    }
-                    Err(e) => {
-                        warn!(
-                            attempt,
-                            message_id = ?tx_id,
-                            error = %e,
-                            "Erro ao processar transação"
-                        );
-                        if attempt < 3 {
-                            tokio::time::sleep(Duration::from_millis(500)).await;
+            let parent_context = opentelemetry::global::get_text_map_propagator(|propagator| {
+                if let Some(headers) = delivery.properties.headers() {
+                    propagator.extract(&HeaderExtractor(headers))
+                } else {
+                    opentelemetry::Context::new()
+                }
+            });
+
+            let span = tracing::info_span!(
+                "rabbitmq.consume",
+                queue = QUEUE_TRANSACTIONS_PROCESSED,
+                message_id = ?tx_id
+            );
+            span.set_parent(parent_context);
+
+            async {
+                let mut success = false;
+                // 3 tentativas de processamento
+                for attempt in 1..=3 {
+                    match process_message(&pool, &delivery.data).await {
+                        Ok(_) => {
+                            success = true;
+                            break;
+                        }
+                        Err(e) => {
+                            warn!(
+                                attempt,
+                                message_id = ?tx_id,
+                                error = %e,
+                                "Erro ao processar transação"
+                            );
+                            if attempt < 3 {
+                                tokio::time::sleep(Duration::from_millis(500)).await;
+                            }
                         }
                     }
                 }
-            }
 
-            if success {
-                // Reconhece (ACK) somente após atualização confirmada no banco
-                if let Err(e) = delivery.ack(BasicAckOptions::default()).await {
-                    error!(error = %e, "Erro ao fazer ACK da mensagem");
+                if success {
+                    // Reconhece (ACK) somente após atualização confirmada no banco
+                    if let Err(e) = delivery.ack(BasicAckOptions::default()).await {
+                        error!(error = %e, "Erro ao fazer ACK da mensagem");
+                    } else {
+                        info!(message_id = ?tx_id, "Mensagem processada e ACK enviada");
+                    }
                 } else {
-                    info!(message_id = ?tx_id, "Mensagem processada e ACK enviada");
+                    // Rejeita (NACK com requeue=false) após 3 tentativas -> dead-letter
+                    if let Err(e) = delivery.nack(BasicNackOptions { multiple: false, requeue: false }).await {
+                        error!(error = %e, "Erro ao fazer NACK da mensagem");
+                    } else {
+                        error!(message_id = ?tx_id, "Mensagem rejeitada (NACK requeue=false) e enviada para DLQ");
+                    }
+                    
+                    // Em caso de falha, publicar em transactions.failed
+                    if let Ok(payload) = serde_json::from_slice::<Transaction>(&delivery.data) {
+                        publish_to_failed(&channel, &payload).await;
+                    }
                 }
-            } else {
-                // Rejeita (NACK com requeue=false) após 3 tentativas -> dead-letter
-                if let Err(e) = delivery.nack(BasicNackOptions { multiple: false, requeue: false }).await {
-                    error!(error = %e, "Erro ao fazer NACK da mensagem");
-                } else {
-                    error!(message_id = ?tx_id, "Mensagem rejeitada (NACK requeue=false) e enviada para DLQ");
-                }
-                
-                // Em caso de falha, publicar em transactions.failed
-                if let Ok(payload) = serde_json::from_slice::<Transaction>(&delivery.data) {
-                    publish_to_failed(&channel, &payload).await;
-                }
-            }
+            }.instrument(span).await;
         }
     }
 

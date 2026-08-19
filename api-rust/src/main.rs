@@ -12,6 +12,7 @@ pub mod models;
 pub mod queue;
 pub mod routes;
 pub mod services;
+pub mod telemetry;
 
 pub struct AppState {
     pub db: sqlx::PgPool,
@@ -20,7 +21,7 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    telemetry::init_telemetry();
 
     // 1. Conexão com o Banco de Dados (PostgreSQL)
     let database_url = env::var("DATABASE_URL")
@@ -64,6 +65,7 @@ async fn main() -> Result<()> {
         .nest("/pix", routes::pix::router())
         .with_state(state)
         // Global middleware
+        .layer(axum::middleware::from_fn(middleware::tracing::tracing_middleware))
         .layer(axum::middleware::from_fn(middleware::rate_limit::rate_limiter));
 
     // 7. Servidor

@@ -15,7 +15,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 jsonwebtoken = "9"
 lapin = "2"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json"] }
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 thiserror = "1"
@@ -25,7 +25,12 @@ dotenv = "0.15"
 dashmap = "5"
 http-body-util = "0.1"
 futures-util = "0.3"
-
+opentelemetry = { version = "0.21" }
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.14", features = ["grpc-tonic", "trace"] }
+opentelemetry-semantic-conventions = { version = "0.13" }
+tracing-opentelemetry = { version = "0.22" }
+opentelemetry-http = "0.10"
 [dev-dependencies]
 axum-test = "14"
 tokio-test = "0.4"
