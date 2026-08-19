@@ -1,0 +1,1 @@
+DATE=2024-08-19,TOTAL_ACCTS=0000000003,ACTIVE_ACCTS=0000000002,TOTAL_BALANCE=00000000000000600100                                                                                                       

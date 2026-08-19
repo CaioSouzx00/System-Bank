@@ -1,0 +1,2 @@
+DIVERGENCE: TRANS_ID=T2                                   COUNT=0002 DEBIT=000000000000200000 CREDIT=000000000000150000                                                                                 
+DATE=2024-08-19,TOTAL_RECONCILED=0000000000,TOTAL_DIVERGENT=0000000001                                                                                                                                  
