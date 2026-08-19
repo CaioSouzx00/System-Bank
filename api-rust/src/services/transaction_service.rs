@@ -79,3 +79,43 @@ async fn find_by_correlation_id(db: &PgPool, correlation_id: Uuid) -> AppResult<
     .fetch_optional(db)
     .await?)
 }
+
+pub async fn find_by_account_id_and_date_range(
+    db: &PgPool,
+    account_id: Uuid,
+    owner_id: Uuid,
+    from: time::OffsetDateTime,
+    to: time::OffsetDateTime,
+) -> AppResult<Vec<Transaction>> {
+    // 1. Validate if account belongs to owner
+    let account_exists = sqlx::query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM accounts WHERE id = $1 AND owner_id = $2)"#,
+        account_id,
+        owner_id
+    )
+    .fetch_one(db)
+    .await?
+    .unwrap_or(false);
+
+    if !account_exists {
+        return Err(AppError::NotFound("Conta não encontrada".into()));
+    }
+
+    // 2. Fetch transactions
+    let transactions = sqlx::query_as!(
+        Transaction,
+        r#"SELECT id, account_id, destination_account_id,
+                  type as "type: _", amount, status as "status: _",
+                  correlation_id, failure_reason, created_at, processed_at
+           FROM transactions
+           WHERE account_id = $1 AND created_at >= $2 AND created_at <= $3
+           ORDER BY created_at ASC"#,
+        account_id,
+        from,
+        to
+    )
+    .fetch_all(db)
+    .await?;
+
+    Ok(transactions)
+}
