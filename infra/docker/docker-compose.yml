@@ -54,6 +54,9 @@ services:
       JWT_EXPIRY_SECS: ${JWT_EXPIRY_SECS:-900}
       RUST_LOG: info
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      CA_CERT_B64: ${CA_CERT_B64}
+      SERVER_CERT_B64: ${SERVER_CERT_B64}
+      SERVER_KEY_B64: ${SERVER_KEY_B64}
     ports:
       - "8080:8080"
     healthcheck:
@@ -76,6 +79,9 @@ services:
     environment:
       AMQP_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
       DATABASE_URL: postgres://${POSTGRES_USER:-bankuser}:${POSTGRES_PASSWORD:-bankpass}@postgres:5432/${POSTGRES_DB:-system_bank}
+      CA_CERT_B64: ${CA_CERT_B64}
+      CLIENT_CERT_B64: ${CLIENT_CERT_B64}
+      CLIENT_KEY_B64: ${CLIENT_KEY_B64}
     volumes:
       - cobol_io:/app/io
 

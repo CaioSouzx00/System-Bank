@@ -31,6 +31,11 @@ opentelemetry-otlp = { version = "0.14", features = ["grpc-tonic", "trace"] }
 opentelemetry-semantic-conventions = { version = "0.13" }
 tracing-opentelemetry = { version = "0.22" }
 opentelemetry-http = "0.10"
+axum-server = { version = "0.8.0", features = ["tls-rustls"] }
+rustls = "0.23.43"
+tokio-rustls = "0.26.4"
+rustls-pemfile = "2.2.0"
+base64 = "0.23.1"
 [dev-dependencies]
 axum-test = "14"
 tokio-test = "0.4"

@@ -13,6 +13,7 @@ pub mod queue;
 pub mod routes;
 pub mod services;
 pub mod telemetry;
+pub mod tls;
 
 pub struct AppState {
     pub db: sqlx::PgPool,
@@ -63,6 +64,7 @@ async fn main() -> Result<()> {
         .nest("/accounts", routes::accounts::router())
         .nest("/transactions", routes::transactions::router())
         .nest("/pix", routes::pix::router())
+        .nest("/internal", routes::internal::router())
         .with_state(state)
         // Global middleware
         .layer(axum::middleware::from_fn(middleware::tracing::tracing_middleware))
@@ -70,11 +72,19 @@ async fn main() -> Result<()> {
 
     // 7. Servidor
     let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
-    let addr = format!("0.0.0.0:{}", port);
-    tracing::info!("Server running on {}", addr);
+    let addr = format!("0.0.0.0:{}", port).parse::<std::net::SocketAddr>()?;
+    tracing::info!("Server configured for {}", addr);
 
-    let listener = TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    if let Some(tls_config) = tls::load_rustls_config().await? {
+        tracing::info!("Starting server WITH mTLS on {}", addr);
+        axum_server::bind_rustls(addr, tls_config)
+            .serve(app.into_make_service())
+            .await?;
+    } else {
+        tracing::warn!("Starting server WITHOUT mTLS (missing certs in env) on {}", addr);
+        let listener = TcpListener::bind(&addr).await?;
+        axum::serve(listener, app).await?;
+    }
 
     Ok(())
 }
