@@ -76,7 +76,15 @@ jobs:
         working-directory: api-rust
         run: |
           cargo install cargo-audit --quiet
+          cargo audit --json > audit-report.json || true
           cargo audit
+
+      - name: Upload Audit Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cargo-audit-report
+          path: api-rust/audit-report.json
 
       - name: Install cargo-tarpaulin
         uses: taiki-e/install-action@cargo-tarpaulin
@@ -140,9 +148,15 @@ jobs:
           context: api-rust/
           file: api-rust/Dockerfile
           push: false
-          tags: system-bank-api:ci
+          tags: api-rust:latest
+          load: true
           cache-from: type=gha,scope=api-rust
           cache-to: type=gha,mode=max,scope=api-rust
+
+      - name: Docker Scout CVEs
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
+          docker scout cves api-rust:latest --exit-code --only-severity critical,high
 
       - name: Build COBOL Worker
         uses: docker/build-push-action@v5

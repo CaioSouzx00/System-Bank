@@ -39,16 +39,34 @@ else
   echo "[$(date -Iseconds)] Job ${JOB_TYPE} falhou" >&2
 fi
 
-# Registra no banco via psql
-psql "${DATABASE_URL}" <<SQL
-  UPDATE batch_jobs
-  SET status = '${STATUS}',
-      finished_at = NOW(),
-      records_processed = ${RECORDS}
-  WHERE job_type = '${JOB_TYPE//-/_}'
-    AND status = 'RUNNING'
-    AND scheduled_for::date = '${PROCESS_DATE}';
+# Cria arquivos temporários para os certificados se eles existirem
+if [[ -n "${CA_CERT_B64:-}" && -n "${CLIENT_CERT_B64:-}" && -n "${CLIENT_KEY_B64:-}" ]]; then
+  echo "$CA_CERT_B64" | base64 -d > /tmp/ca.crt
+  echo "$CLIENT_CERT_B64" | base64 -d > /tmp/client.crt
+  echo "$CLIENT_KEY_B64" | base64 -d > /tmp/client.key
+
+  # Registra na API usando mTLS
+  API_URL="https://api:8080/internal/jobs/callback"
+  echo "[$(date -Iseconds)] Enviando callback via mTLS para ${API_URL}"
+  curl -s -X POST "${API_URL}" \
+    --cacert /tmp/ca.crt \
+    --cert /tmp/client.crt \
+    --key /tmp/client.key \
+    -H "Content-Type: application/json" \
+    -d "{ \"job_type\": \"${JOB_TYPE}\", \"status\": \"${STATUS}\", \"process_date\": \"${PROCESS_DATE}\", \"records_processed\": ${RECORDS} }"
+else
+  # Registra no banco via psql (fallback/modo antigo se não houver mTLS)
+  echo "[$(date -Iseconds)] Enviando callback via psql"
+  psql "${DATABASE_URL}" <<SQL
+    UPDATE batch_jobs
+    SET status = '${STATUS}',
+        finished_at = NOW(),
+        records_processed = ${RECORDS}
+    WHERE job_type = '${JOB_TYPE//-/_}'
+      AND status = 'RUNNING'
+      AND scheduled_for::date = '${PROCESS_DATE}';
 SQL
+fi
 
 [[ "$STATUS" == "FAILED" ]] && exit 1
 exit 0

@@ -5,10 +5,10 @@
 ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║    ██╔══██╗██╔══██║██║╚██╗██║██╔═██╗
 ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║    ██████╔╝██║  ██║██║ ╚████║██║  ██╗
 ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
-```
 
-# System Bank
+# System-Bank
 
+![CI](https://github.com/CaioSouzx00/System-Bank/actions/workflows/ci.yml/badge.svg)
 ![Build](https://img.shields.io/github/actions/workflow/status/caio-daniel-souza/system-bank/ci.yml?branch=main&style=flat-square&label=build)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 ![Rust](https://img.shields.io/badge/Rust-1.78-orange?style=flat-square&logo=rust)
