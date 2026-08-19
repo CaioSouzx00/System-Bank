@@ -122,15 +122,18 @@ jobs:
           path: batch-cobol/bin/
           
       - name: Executar testes COBOL
+        working-directory: batch-cobol
         run: |
-          mkdir -p batch-cobol/io/input
-          mkdir -p batch-cobol/io/output
-          touch batch-cobol/io/input/rust_input.dat
-          chmod +x batch-cobol/bin/*
-          for bin in batch-cobol/bin/*; do
-            echo "Testando $bin"
-            docker run --rm -v ${{ github.workspace }}/batch-cobol:/app -w /app -e COB_LS_FIXED=Y gnucobol/gnucobol:3.2 ./bin/$(basename $bin)
-          done
+          chmod +x tests/run-tests.sh
+          chmod +x bin/*
+          docker run --rm -v ${{ github.workspace }}/batch-cobol:/app -w /app gnucobol/gnucobol:3.2 ./tests/run-tests.sh | tee test-results.tap
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cobol-test-results
+          path: batch-cobol/test-results.tap
 
   docker-build:
     name: Docker — Build das imagens
