@@ -1,0 +1,65 @@
+name: Chaos Engineering Resilience Tests
+
+on:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  chaos-engineering:
+    name: Run Chaos Scenarios
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate test certificates
+        run: |
+          chmod +x scripts/generate-certs.sh
+          ./scripts/generate-certs.sh
+
+      - name: Start infrastructure
+        working-directory: infra/docker
+        run: |
+          docker compose up -d postgres rabbitmq
+          # Wait for services to be healthy
+          sleep 10
+          docker compose up -d api cobol-worker
+
+      - name: Wait for API to be ready
+        run: |
+          echo "Waiting for API to respond..."
+          for i in {1..12}; do
+            curl -sf http://localhost:8080/health && echo "API ready" && break
+            echo "Sleeping..."
+            sleep 5
+          done
+
+      - name: Make scripts executable
+        run: chmod +x scripts/chaos/*.sh
+
+      - name: Scenario - PostgreSQL indisponível
+        run: ./scripts/chaos/pg_unavailable.sh
+        continue-on-error: true
+        id: pg_test
+
+      - name: Scenario - RabbitMQ reinicia
+        run: ./scripts/chaos/rabbitmq_restart.sh
+        continue-on-error: true
+        id: rm_test
+
+      - name: Scenario - COBOL worker trava
+        run: ./scripts/chaos/cobol_worker_hang.sh
+        continue-on-error: true
+        id: cw_test
+
+      - name: Scenario - Latência de rede simulada
+        run: ./scripts/chaos/network_latency.sh
+        continue-on-error: true
+        id: nl_test
+
+      - name: Stop infrastructure
+        if: always()
+        working-directory: infra/docker
+        run: docker compose down -v
