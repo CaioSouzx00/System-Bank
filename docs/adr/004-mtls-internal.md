@@ -1,5 +1,7 @@
 # ADR 004: mTLS para Comunicação Interna (API e COBOL Worker)
 
+**Data:** 2024-01
+**Status:** Aceito
 ## Contexto
 O projeto tem como premissa de arquitetura um forte viés de segurança. A comunicação interna, especialmente na atualização de status de execuções batch (COBOL), antes utilizava acesso direto ao banco de dados via cliente psql. Embora isso funcionasse, mantinha uma superfície de ataque considerável, exigindo as credenciais do banco dentro do worker, e dificultando auditoria e observabilidade.
 
