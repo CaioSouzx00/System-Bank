@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::AppState;
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/health", get(health))
+    Router::new().route("/", get(health))
 }
 
 async fn health() -> Json<Value> {

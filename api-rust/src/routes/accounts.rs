@@ -18,10 +18,10 @@ use crate::{
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/accounts", get(list_accounts).post(create_account))
-        .route("/accounts/:id", get(get_account))
-        .route("/accounts/:id/statement", get(get_statement))
-        .route("/accounts/:id/block", post(block_account))
+        .route("/", get(list_accounts).post(create_account))
+        .route("/:id", get(get_account))
+        .route("/:id/statement", get(get_statement))
+        .route("/:id/block", post(block_account))
 }
 
 async fn list_accounts(

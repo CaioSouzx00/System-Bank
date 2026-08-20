@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     routing::{delete, get, post},
     Extension, Json, Router,
 };
@@ -59,7 +60,7 @@ async fn remove_key(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
-) -> AppResult<()> {
+) -> AppResult<StatusCode> {
     let account = crate::services::account_service::list(&state.db, claims.sub)
         .await?
         .into_iter()
@@ -67,7 +68,7 @@ async fn remove_key(
         .ok_or_else(|| crate::errors::AppError::NotFound("Conta não encontrada para usuário".into()))?;
 
     pix_service::remove_key(&state.db, id, account.id).await?;
-    Ok(())
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn initiate_payment(

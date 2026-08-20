@@ -5,47 +5,51 @@
 ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║    ██╔══██╗██╔══██║██║╚██╗██║██╔═██╗
 ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║    ██████╔╝██║  ██║██║ ╚████║██║  ██╗
 ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
+```
 
 # System-Bank
 
 ![CI](https://github.com/CaioSouzx00/System-Bank/actions/workflows/ci.yml/badge.svg)
-![Build](https://img.shields.io/github/actions/workflow/status/caio-daniel-souza/system-bank/ci.yml?branch=main&style=flat-square&label=build)
-![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 ![Rust](https://img.shields.io/badge/Rust-1.78-orange?style=flat-square&logo=rust)
 ![COBOL](https://img.shields.io/badge/COBOL-GnuCOBOL_3.2-blue?style=flat-square)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
-![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)
-
-> Simulação de core banking que une processamento transacional legado (COBOL) a serviços de alta performance em Rust, com foco em consistência contábil, auditoria imutável e segurança de memória — refletindo a arquitetura híbrida real dos grandes bancos brasileiros.
+![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
 ---
 
-## Sumário
+## O que é o System-Bank?
 
-1. [Arquitetura Geral](#arquitetura-geral)
-2. [Modelagem de Dados](#modelagem-de-dados)
-3. [Filas e Mensageria](#filas-e-mensageria)
-4. [Por que COBOL?](#por-que-cobol)
-5. [Por que Rust?](#por-que-rust)
-6. [Segurança](#segurança)
-7. [Estrutura do Monorepo](#estrutura-do-monorepo)
-8. [Como Rodar Localmente](#como-rodar-localmente)
-9. [Roadmap](#roadmap)
+O **System-Bank** é uma **simulação de core banking** — o núcleo de um sistema bancário — construída para demonstrar como os grandes bancos brasileiros (Itaú, Banco do Brasil, Caixa Econômica) operam por dentro.
+
+Na prática, você terá um sistema capaz de:
+
+- 🏦 **Abrir e gerenciar contas bancárias** com agência, número e dígito verificador gerado automaticamente
+- 💸 **Processar transações** (débito, crédito, transferência, tarifas) de forma assíncrona e idempotente
+- 🔑 **Pagar e receber via PIX** com registro de chaves CPF, e-mail, telefone ou aleatória, e geração de QR Code
+- 📄 **Gerar extratos** em JSON ou no formato bancário **OFX** (padrão Open Finance/Open Banking)
+- 🔒 **Autenticar usuários** com JWT RS256 (assinatura assimétrica) e controlar acesso por perfil (CLIENT, OPERATOR, ADMIN)
+- 📋 **Executar jobs de fechamento de caixa e conciliação** via módulos COBOL legados — simulando a realidade dos mainframes bancários
+- 🛡️ **Auditar toda e qualquer ação** num log imutável (append-only) protegido por triggers no banco de dados
+- 📊 **Observar o sistema em produção** com rastreamento distribuído (OpenTelemetry), logs estruturados (Loki) e dashboards (Grafana)
+
+### Por que isso é relevante?
+
+Cerca de **70% do volume transacional bancário brasileiro** ainda transita por sistemas COBOL/mainframe. Este projeto simula o cenário real que engenheiros de bancos enfrentam todo dia: **fazer um serviço moderno em Rust se comunicar com processamento legado em COBOL**, sem jogar fora décadas de código testado e auditado.
 
 ---
 
 ## Arquitetura Geral
 
-O sistema é organizado em cinco camadas funcionalmente independentes, comunicando-se de forma assíncrona para garantir resiliência, consistência eventual e auditabilidade total.
+O sistema é organizado em cinco camadas que se comunicam de forma assíncrona, garantindo resiliência, consistência eventual e auditabilidade total.
 
 | Camada | Tecnologia | Responsabilidade |
 |---|---|---|
-| **API** | Rust (Axum / Actix-web) | Autenticação, validação de entrada, roteamento, rate limiting |
-| **Mensageria** | RabbitMQ | Desacoplamento síncrono/batch, retries, dead-letter |
+| **API** | Rust (Axum) | Autenticação JWT, validação de entrada, roteamento, rate limiting |
+| **Mensageria** | RabbitMQ | Desacoplamento síncrono/batch, retries automáticos, dead-letter |
 | **Processamento Batch** | GnuCOBOL | Fechamento de caixa, cálculo de juros, CNAB, conciliação |
 | **Persistência** | PostgreSQL 16 | Contas, transações, ledger, auditoria, jobs batch |
-| **Observabilidade** | OpenTelemetry + Loki + Grafana | Logs estruturados (JSON), métricas, tracing distribuído |
+| **Observabilidade** | OpenTelemetry + Loki + Grafana | Logs estruturados JSON, métricas, tracing distribuído |
 
 ### Diagrama de Fluxo
 
@@ -169,7 +173,7 @@ sequenceDiagram
 | Campo | Tipo | Descrição | Constraints |
 |---|---|---|---|
 | `id` | `UUID` | Identificador do job | `PK, NOT NULL` |
-| `job_type` | `VARCHAR(50)` | `DAILY_CLOSING`, `INTEREST_CALC`, `CNAB_GENERATION`, `RECONCILIATION` | `NOT NULL` |
+| `job_type` | `VARCHAR(50)` | `DAILY_CLOSING`, `INTEREST_CALC`, `CNAB_GENERATION`, `RECONCILIATION`, `FEE_CALC` | `NOT NULL` |
 | `status` | `VARCHAR(20)` | `SCHEDULED`, `RUNNING`, `COMPLETED`, `FAILED` | `NOT NULL, DEFAULT 'SCHEDULED'` |
 | `scheduled_for` | `TIMESTAMPTZ` | Data/hora planejada de execução | `NOT NULL` |
 | `started_at` | `TIMESTAMPTZ` | Início efetivo | `NULLABLE` |
@@ -320,79 +324,72 @@ FOR EACH ROW EXECUTE FUNCTION audit_logs_immutable();
 ```
 system-bank/
 │
-├── .gitignore
-│
 ├── api-rust/                              # Camada de API (Rust + Axum)
 │   ├── Cargo.toml
 │   ├── Dockerfile                         # Multi-stage: rust:1.78 builder + debian-slim
 │   └── src/
 │       ├── main.rs                        # Boot: DB pool, AMQP channel, router
-│       ├── errors.rs                      # AppError + AppResult
-│       ├── config/
-│       │   └── mod.rs                     # Config lida do ambiente (.env)
+│       ├── lib.rs                         # Módulos públicos e AppState
+│       ├── app.rs                         # Montagem do router com middlewares
+│       ├── errors.rs                      # AppError + AppResult (BadRequest, NotFound, etc.)
+│       ├── telemetry.rs                   # OpenTelemetry OTLP + tracing-subscriber
+│       ├── tls.rs                         # mTLS via rustls (certificados em base64 no env)
 │       ├── middleware/
-│       │   ├── mod.rs
-│       │   └── auth.rs                    # JWT RS256 → injeta Claims no request
+│       │   ├── auth.rs                    # JWT RS256 → injeta Claims no request
+│       │   ├── rate_limit.rs              # Token bucket por IP e por account_id
+│       │   └── tracing.rs                 # Span HTTP com propagação W3C traceparent
 │       ├── models/
-│       │   ├── mod.rs
 │       │   ├── account.rs                 # Account, AccountStatus, CreateAccountRequest
-│       │   └── transaction.rs             # Transaction, TransactionType/Status (Decimal)
+│       │   ├── transaction.rs             # Transaction, TransactionType/Status (Decimal)
+│       │   ├── pix.rs                     # PixKey, PixPaymentRequest, PixQrResponse
+│       │   └── statement.rs              # StatementQuery, StatementFormat (JSON/OFX)
 │       ├── routes/
-│       │   ├── mod.rs
-│       │   ├── accounts.rs                # GET|POST /accounts, GET /accounts/:id
-│       │   ├── transactions.rs            # POST /transactions (202), GET /transactions/:id
+│       │   ├── accounts.rs                # GET|POST /accounts, GET /:id, GET /:id/statement
+│       │   ├── transactions.rs            # POST / (202 Accepted), GET /:id
+│       │   ├── pix.rs                     # POST /keys, GET /keys, DELETE /keys/:id, POST /payment
+│       │   ├── internal.rs               # POST /jobs/callback (uso interno — sem auth)
 │       │   └── health.rs                  # GET /health
 │       ├── services/
-│       │   ├── mod.rs
 │       │   ├── account_service.rs         # CRUD com escopo por owner_id
-│       │   └── transaction_service.rs     # Idempotência via correlation_id + publish
-│       └── queue/
-│           ├── mod.rs
-│           └── publisher.rs               # Declara filas + publica transactions.pending
+│       │   ├── transaction_service.rs     # Idempotência via correlation_id + publish
+│       │   └── pix_service.rs            # Registro de chaves, pagamento, QR Code
+│       ├── queue/
+│       │   ├── publisher.rs              # Declara filas + publica transactions.pending
+│       │   └── consumer.rs               # Consome transactions.processed com retry + DLQ
+│       └── bin/
+│           └── worker.rs                  # Binary separado: orquestra jobs COBOL
 │
 ├── batch-cobol/                           # Camada de processamento legado (GnuCOBOL 3.2)
 │   ├── Makefile                           # Compila todos os .cbl para bin/
 │   ├── Dockerfile                         # gnucobol builder + debian-slim runtime
-│   ├── src/
-│   │   ├── DAILY-CLOSING.cbl             # Fechamento de caixa — consolidação diária
-│   │   ├── INTEREST-CALC.cbl            # Juros compostos (capitalização diária)
-│   │   ├── CNAB240-GEN.cbl              # Arquivo CNAB 240 para compensação bancária
-│   │   ├── RECONCILIATION.cbl           # Conciliação transactions × ledger_entries
-│   │   └── FEE-CALC.cbl                 # Cálculo de tarifas por tipo de operação
-│   ├── copybooks/
-│   │   └── ACCOUNT-RECORD.cpy           # Estrutura de conta (COPY compartilhado)
-│   └── io/
-│       ├── input/                         # Gerados pelo worker Rust antes de invocar COBOL
-│       └── output/                        # Lidos pelo worker Rust após execução do COBOL
+│   └── src/
+│       ├── DAILY-CLOSING.cbl             # Fechamento de caixa — consolidação diária
+│       ├── INTEREST-CALC.cbl            # Juros compostos (capitalização diária)
+│       ├── CNAB240-GEN.cbl              # Arquivo CNAB 240 para compensação bancária
+│       ├── RECONCILIATION.cbl           # Conciliação transactions × ledger_entries
+│       └── FEE-CALC.cbl                 # Cálculo de tarifas por tipo de operação
 │
-├── migrations/                            # SQL versionado — aplicado via sqlx::migrate!
+├── migrations/                            # SQL versionado — aplicado sequencialmente
 │   ├── 001_initial_schema.sql            # accounts + transactions + índices
 │   ├── 002_ledger_entries.sql           # ledger_entries (dupla entrada contábil)
-│   ├── 003_audit_triggers.sql           # audit_logs + trigger de imutabilidade + audit de status
-│   └── 004_batch_jobs.sql               # batch_jobs (rastreamento de jobs COBOL)
+│   ├── 003_audit_triggers.sql           # audit_logs + trigger de imutabilidade
+│   ├── 004_batch_jobs.sql               # batch_jobs (rastreamento de jobs COBOL)
+│   ├── 005_pix_keys.sql                 # pix_keys (chaves PIX por conta)
+│   └── 006_users.sql                    # users + FK em accounts
 │
-├── infra/
-│   ├── docker/
-│   │   ├── docker-compose.yml            # postgres · rabbitmq · api · cobol-worker · loki · grafana
-│   │   └── .env.example                  # Template de variáveis — nunca commitar .env real
-│   ├── ci/
-│   │   └── .github/
-│   │       └── workflows/
-│   │           ├── ci.yml                # fmt · clippy · cargo audit · tests · docker build
-│   │           ├── staging.yml           # Push em develop → deploy automático
-│   │           └── production.yml        # Tag v*.*.* → aprovação manual → deploy
-│   ├── grafana/
-│   │   └── dashboards/                   # JSON provisionados automaticamente
-│   └── postgres/
-│       └── init.sql                      # pgcrypto, uuid-ossp, configurações de dev
+├── infra/docker/
+│   ├── docker-compose.yml               # postgres · rabbitmq · api · cobol · loki · grafana · tempo · otel
+│   ├── .env.example                      # Template de variáveis — nunca commitar .env real
+│   └── grafana/                          # Dashboards e datasources provisionados automaticamente
 │
 ├── scripts/
-│   └── run-job.sh                        # Wrapper: executa binário COBOL + atualiza batch_jobs
+│   ├── run-migrations.sh                 # Aplica migrations ordenadas via psql
+│   ├── run-job.sh                        # Wrapper: executa job COBOL + atualiza batch_jobs
+│   └── generate-certs.sh                # Gera CA, servidor e cliente para mTLS
 │
 └── docs/
     ├── architecture/                      # Documentação técnica narrativa
     └── adr/                              # Architecture Decision Records
-        ├── README.md                      # Índice de ADRs
         ├── 001-rust-over-java.md         # Por que Rust em vez de Java/Spring Boot
         ├── 002-rabbitmq-over-kafka.md    # Por que RabbitMQ em vez de Kafka
         └── 003-cobol-subprocess.md       # Por que subprocesso em vez de FFI
@@ -415,12 +412,12 @@ system-bank/
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/caio-daniel-souza/system-bank.git
-cd system-bank
+git clone https://github.com/CaioSouzx00/System-Bank.git
+cd System-Bank
 
 # 2. Configure variáveis de ambiente
 cp infra/docker/.env.example infra/docker/.env
-# Edite .env com suas configs locais (senhas, portas, etc.)
+# Edite .env com suas configs locais (senhas, JWT_PUBLIC_KEY, etc.)
 
 # 3. Suba todos os serviços
 docker compose -f infra/docker/docker-compose.yml up -d
@@ -429,19 +426,20 @@ docker compose -f infra/docker/docker-compose.yml up -d
 docker compose -f infra/docker/docker-compose.yml ps
 
 # 5. Execute as migrations
-docker compose -f infra/docker/docker-compose.yml exec api \
-  ./scripts/run-migrations.sh
+bash scripts/run-migrations.sh
 ```
 
 ### Serviços e Portas
 
 | Serviço | Porta Local | Descrição |
 |---|---|---|
-| `api-rust` | `8080` | API REST + OpenAPI em `/docs` |
-| `postgres` | `5432` | Banco principal |
+| `api-rust` | `8080` | API REST principal |
+| `postgres` | `5432` | Banco de dados principal |
 | `rabbitmq` | `5672` / `15672` | Broker de mensagens / Management UI |
 | `grafana` | `3000` | Dashboards de observabilidade |
 | `loki` | `3100` | Agregação de logs |
+| `tempo` | `3200` | Backend de traces |
+| `otel-collector` | `4317` / `4318` | Collector OpenTelemetry |
 
 ### Testar a API
 
@@ -449,29 +447,39 @@ docker compose -f infra/docker/docker-compose.yml exec api \
 # Health check
 curl http://localhost:8080/health
 
-# Criar conta (exemplo)
+# Criar conta
 curl -X POST http://localhost:8080/accounts \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"owner_id": "uuid", "agency": "0001"}'
+  -d '{"agency": "0001"}'
 
 # Criar transação com idempotência
 curl -X POST http://localhost:8080/transactions \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "account_id": "uuid",
+    "account_id": "<uuid-da-conta>",
     "type": "DEBIT",
     "amount": "150.00",
-    "correlation_id": "uuid-unico-gerado-pelo-cliente"
+    "correlation_id": "<uuid-unico-gerado-pelo-cliente>"
   }'
+
+# Registrar chave PIX
+curl -X POST http://localhost:8080/pix/keys \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"key_type": "Email", "key_value": "usuario@email.com"}'
+
+# Extrato em formato OFX
+curl "http://localhost:8080/accounts/<id>/statement?from=2024-01-01&to=2024-01-31&format=ofx" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### Executar Job COBOL Manualmente
 
 ```bash
 # Acessa o container COBOL
-docker compose exec cobol-worker bash
+docker compose -f infra/docker/docker-compose.yml exec cobol-worker bash
 
 # Executa fechamento diário manualmente
 ./run-job.sh DAILY-CLOSING 2024-01-15
@@ -487,20 +495,20 @@ docker compose exec cobol-worker bash
 | ✅ | API Rust — CRUD de contas | Endpoints autenticados com rate limiting |
 | ✅ | Integração RabbitMQ | Publicação/consumo de transações assíncronas |
 | ✅ | Worker COBOL — fechamento diário | `DAILY-CLOSING.cbl` integrado ao pipeline |
+| ✅ | PIX — chaves, pagamento, QR Code | Fluxo end-to-end implementado |
+| ✅ | Extratos OFX / Open Finance | Exportação de extrato em formato padrão |
+| ✅ | mTLS entre serviços | Autenticação bidirecional via rustls |
+| ✅ | Conciliação e tarifas COBOL | `RECONCILIATION.cbl` e `FEE-CALC.cbl` integrados |
 | 🔄 | Geração de CNAB 240 | Arquivo padrão de compensação bancária |
 | 🔄 | Cálculo de juros compostos | `INTEREST-CALC.cbl` com regime de capitalização |
-| 📋 | PIX simulado | Fluxo end-to-end com chave, alias e QR Code |
-| 📋 | Open Finance (OFX/OBK) | Exportação de extratos em formato Open Banking |
 | 📋 | Relatórios regulatórios BACEN | SCR, PSTAW10, DOC 3040 simulados |
-| 📋 | TLS mútuo (mTLS) | Autenticação bidirecional entre serviços internos |
-| 📋 | Chaos Engineering | Testes de resiliência com falhas injetadas |
 | 📋 | Dashboard de reconciliação | UI para operadores visualizarem divergências batch |
 
 ---
 
 ## Licença
 
-MIT © [Caio Daniel Souza](https://github.com/caio-daniel-souza)
+MIT © [Caio Daniel Souza](https://github.com/CaioSouzx00)
 
 ---
 

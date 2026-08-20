@@ -83,3 +83,8 @@ pub async fn block(db: &PgPool, id: Uuid) -> AppResult<Account> {
     .await?
     .ok_or_else(|| AppError::NotFound("Conta não encontrada".into()))
 }
+
+/// Alias público de `find_by_owner` — mantém compatibilidade com chamadas de outros módulos
+pub async fn list(db: &PgPool, owner_id: Uuid) -> AppResult<Vec<Account>> {
+    find_by_owner(db, owner_id).await
+}
