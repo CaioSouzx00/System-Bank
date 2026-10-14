@@ -1,10 +1,11 @@
 use axum::{
     extract::{MatchedPath, Request},
+    http,
     middleware::Next,
     response::Response,
 };
 use opentelemetry::{global, propagation::Extractor};
-use tracing::{info_span, Instrument, Span};
+use tracing::{info_span, Instrument};
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 struct HeaderExtractor<'a>(&'a http::HeaderMap);

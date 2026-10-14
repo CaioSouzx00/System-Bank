@@ -15,3 +15,5 @@ Cada arquivo documenta **o contexto, a decisão e as consequências** de uma esc
 | [005](./005-numeric-over-float.md) | NUMERIC/Decimal em vez de float para valores monetários | Aceito |
 | [006](./006-argon2id-password-hashing.md) | Argon2id em vez de bcrypt/scrypt para hash de senhas | Aceito |
 | [007](./007-rabbitmq-dlq-strategy.md) | Estratégia de Dead-Letter Queue e reprocessamento manual | Aceito |
+| [008](./008-regulatory-reporting-bacen.md) | Simulação e Geração de Relatórios Regulatórios BACEN (SCR e PSTAW10) | Aceito |
+| [009](./009-operational-reconciliation-dashboard.md) | Painel Operacional de Reconciliação Contábil e Auditoria | Aceito |

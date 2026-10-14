@@ -16,12 +16,19 @@ use crate::{
     AppState,
 };
 
+#[derive(serde::Deserialize)]
+pub struct InterestQuery {
+    pub days: Option<i32>,
+    pub annual_rate: Option<rust_decimal::Decimal>,
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(list_accounts).post(create_account))
         .route("/:id", get(get_account))
         .route("/:id/statement", get(get_statement))
         .route("/:id/block", post(block_account))
+        .route("/:id/interest-simulation", get(simulate_interest))
 }
 
 async fn list_accounts(
@@ -56,11 +63,28 @@ async fn block_account(
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Account>> {
     if claims.role != "ADMIN" {
-        return Err(crate::errors::AppError::Unauthorized); // Simplification: Using Unauthorized for lack of permissions, unless Forbidden exists.
+        return Err(crate::errors::AppError::Unauthorized);
     }
     
     let account = account_service::block(&state.db, id).await?;
     Ok(Json(account))
+}
+
+async fn simulate_interest(
+    State(state): State<Arc<AppState>>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<InterestQuery>,
+) -> AppResult<Json<account_service::InterestSimulationResult>> {
+    let result = account_service::simulate_interest(
+        &state.db,
+        id,
+        claims.sub,
+        query.annual_rate,
+        query.days,
+    )
+    .await?;
+    Ok(Json(result))
 }
 
 async fn get_statement(
@@ -70,7 +94,7 @@ async fn get_statement(
     Query(query): Query<StatementQuery>,
 ) -> AppResult<impl IntoResponse> {
     let format_desc = time::format_description::parse("[year]-[month]-[day]")
-        .map_err(|_| AppError::Internal("Formato de data inválido internamente".into()))?;
+        .map_err(|e| AppError::Internal(anyhow::anyhow!("Formato de data inválido internamente: {}", e)))?;
         
     let from_date = time::Date::parse(&query.from, &format_desc)
         .map_err(|_| AppError::BadRequest("Data 'from' inválida. Use YYYY-MM-DD".into()))?
@@ -82,7 +106,6 @@ async fn get_statement(
         .with_hms(23, 59, 59).unwrap()
         .assume_utc();
         
-    // Validar intervalo de 90 dias no máximo
     if (to_date - from_date).whole_days() > 90 {
         return Err(AppError::BadRequest("O intervalo não pode ser maior que 90 dias".into()));
     }
@@ -136,7 +159,6 @@ async fn get_statement(
                     crate::models::transaction::TransactionType::Fee => "FEE",
                 };
                 
-                // Em OFX saídas (debitos) são geralmente valores negativos
                 let mut amount = tx.amount;
                 if matches!(tx.r#type, crate::models::transaction::TransactionType::Debit | crate::models::transaction::TransactionType::Fee) {
                     amount = -amount;

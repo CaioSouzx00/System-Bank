@@ -7,7 +7,9 @@ pub fn create_router(state: Arc<AppState>) -> Router {
     // Rotas públicas (sem autenticação)
     let public_routes = Router::new()
         .nest("/health", routes::health::router())
-        .nest("/internal", routes::internal::router());
+        .nest("/internal", routes::internal::router())
+        .nest("/regulatory", routes::regulatory::router())
+        .nest("/operations/reconciliation", routes::reconciliation::router());
 
     // Rotas protegidas (exigem JWT válido)
     let protected_routes = Router::new()
