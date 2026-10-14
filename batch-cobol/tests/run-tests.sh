@@ -3,7 +3,7 @@
 # Formato de saída: TAP (Test Anything Protocol)
 
 echo "TAP version 14"
-echo "1..9"
+echo "1..15"
 
 cd "$(dirname "$0")/.." || exit 1
 
@@ -52,3 +52,15 @@ run_test "INTEREST-CALC" "error" "export INPUT_FILE=tests/fixtures/INTEREST-CALC
 run_test "RECONCILIATION" "happy" "export TRANS_FILE=tests/fixtures/RECONCILIATION-trans-happy.txt; export LEDGER_FILE=tests/fixtures/RECONCILIATION-ledger-happy.txt"
 run_test "RECONCILIATION" "empty" "export TRANS_FILE=tests/fixtures/RECONCILIATION-trans-empty.txt; export LEDGER_FILE=tests/fixtures/RECONCILIATION-ledger-empty.txt"
 run_test "RECONCILIATION" "error" "export TRANS_FILE=tests/fixtures/RECONCILIATION-trans-error.txt; export LEDGER_FILE=tests/fixtures/RECONCILIATION-ledger-error.txt"
+
+# 4. CNAB240-GEN
+run_test "CNAB240-GEN" "happy" "export INPUT_FILE=tests/fixtures/CNAB240-GEN-happy.txt"
+run_test "CNAB240-GEN" "empty" "export INPUT_FILE=tests/fixtures/CNAB240-GEN-empty.txt"
+
+# 5. FEE-CALC
+run_test "FEE-CALC" "happy" "export TRANS_FILE=tests/fixtures/FEE-CALC-happy.txt"
+run_test "FEE-CALC" "empty" "export TRANS_FILE=tests/fixtures/FEE-CALC-empty.txt"
+
+# 6. REGULATORY-REPORT
+run_test "REGULATORY-REPORT" "happy" "export INPUT_FILE=tests/fixtures/REGULATORY-REPORT-accounts-happy.txt; export TRANS_FILE=tests/fixtures/REGULATORY-REPORT-trans-happy.txt"
+run_test "REGULATORY-REPORT" "empty" "export INPUT_FILE=tests/fixtures/REGULATORY-REPORT-accounts-empty.txt; export TRANS_FILE=tests/fixtures/REGULATORY-REPORT-trans-empty.txt"

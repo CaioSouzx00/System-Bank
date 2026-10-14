@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Compila
-cd /app
+cd "$(dirname "$0")" || exit 1
 make all
 
 export COB_LS_FIXED=Y
@@ -48,5 +48,34 @@ export TRANS_FILE=tests/fixtures/RECONCILIATION-trans-error.txt
 export LEDGER_FILE=tests/fixtures/RECONCILIATION-ledger-error.txt
 export OUTPUT_FILE=tests/expected/RECONCILIATION-error.txt
 ./bin/RECONCILIATION
+
+# 4. CNAB240-GEN
+export INPUT_FILE=tests/fixtures/CNAB240-GEN-happy.txt
+export OUTPUT_FILE=tests/expected/CNAB240-GEN-happy.txt
+./bin/CNAB240-GEN
+
+export INPUT_FILE=tests/fixtures/CNAB240-GEN-empty.txt
+export OUTPUT_FILE=tests/expected/CNAB240-GEN-empty.txt
+./bin/CNAB240-GEN
+
+# 5. FEE-CALC
+export TRANS_FILE=tests/fixtures/FEE-CALC-happy.txt
+export OUTPUT_FILE=tests/expected/FEE-CALC-happy.txt
+./bin/FEE-CALC
+
+export TRANS_FILE=tests/fixtures/FEE-CALC-empty.txt
+export OUTPUT_FILE=tests/expected/FEE-CALC-empty.txt
+./bin/FEE-CALC
+
+# 6. REGULATORY-REPORT
+export INPUT_FILE=tests/fixtures/REGULATORY-REPORT-accounts-happy.txt
+export TRANS_FILE=tests/fixtures/REGULATORY-REPORT-trans-happy.txt
+export OUTPUT_FILE=tests/expected/REGULATORY-REPORT-happy.txt
+./bin/REGULATORY-REPORT
+
+export INPUT_FILE=tests/fixtures/REGULATORY-REPORT-accounts-empty.txt
+export TRANS_FILE=tests/fixtures/REGULATORY-REPORT-trans-empty.txt
+export OUTPUT_FILE=tests/expected/REGULATORY-REPORT-empty.txt
+./bin/REGULATORY-REPORT
 
 echo "Expected output files generated."

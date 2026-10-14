@@ -10,7 +10,7 @@ PROCESS_DATE="${2:-$(date +%Y-%m-%d)}"
 
 if [[ -z "$JOB_TYPE" ]]; then
   echo "Uso: $0 <JOB_TYPE> [DATA]" >&2
-  echo "Tipos válidos: DAILY-CLOSING, INTEREST-CALC, CNAB240-GEN, RECONCILIATION, FEE-CALC" >&2
+  echo "Tipos válidos: DAILY-CLOSING, INTEREST-CALC, CNAB240-GEN, RECONCILIATION, FEE-CALC, REGULATORY-REPORT" >&2
   exit 1
 fi
 

@@ -17,7 +17,7 @@ impl<'a> Extractor for HeaderExtractor<'a> {
     fn get(&self, key: &str) -> Option<&str> {
         if let Some(val) = self.0.inner().get(key) {
             if let lapin::types::AMQPValue::LongString(s) = val {
-                return Some(s.as_str());
+                return std::str::from_utf8(s.as_bytes()).ok();
             }
         }
         None

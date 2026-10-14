@@ -96,6 +96,7 @@ The `batch-cobol` module represents the core business logic often found in legac
 *   📁 `CNAB240-GEN.cbl`: Generates standard CNAB 240 layout files for inter-bank clearing.
 *   🔍 `RECONCILIATION.cbl`: Audits discrepancies between the `transactions` table and `ledger_entries`.
 *   🧾 `FEE-CALC.cbl`: Applies dynamic operational fees based on transaction types.
+*   🏛️ `REGULATORY-REPORT.cbl`: Batch regulatory reporting for BACEN SCR (Doc 3040 Credit Risk) and PSTAW10 (Payment Scheme Net Settlement).
 
 ---
 
@@ -268,6 +269,33 @@ curl "http://localhost:8080/accounts/<ACCOUNT_UUID>/statement?from=2024-01-01&to
   -H "Authorization: Bearer <JWT_TOKEN>"
 ```
 
+**Simulate Compound Interest:**
+```bash
+curl "http://localhost:8080/accounts/<ACCOUNT_UUID>/interest-simulation?days=30&annual_rate=12.0" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+
+**Generate BACEN Regulatory Reports (SCR Doc 3040 & PSTAW10):**
+```bash
+# BACEN SCR Doc 3040 XML
+curl "http://localhost:8080/regulatory/scr?base_date=2024-01-31&format=xml" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+
+# BACEN PSTAW10 JSON
+curl "http://localhost:8080/regulatory/pstaw10?base_date=2024-01-31&format=json" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+```
+
+**Access Operational Reconciliation Dashboard:**
+```bash
+# JSON Reconciliation Metrics
+curl "http://localhost:8080/operations/reconciliation/metrics" \
+  -H "Authorization: Bearer <JWT_TOKEN>"
+
+# Interactive Web UI Dashboard
+# Open in browser: http://localhost:8080/operations/reconciliation/dashboard
+```
+
 ### Manual Batch Execution
 
 To manually trigger a COBOL batch job within the worker container:
@@ -285,6 +313,8 @@ Key engineering choices are documented in the `docs/adr/` directory:
 *   🦀 `001-rust-over-java.md`: Justification for Rust's memory safety and predictable latency over JVM garbage collection.
 *   🐇 `002-rabbitmq-over-kafka.md`: Preference for RabbitMQ's flexible routing and native dead-lettering for transactional workloads.
 *   📼 `003-cobol-subprocess.md`: Architectural reasoning behind isolating GnuCOBOL via subprocesses rather than unsafe FFI.
+*   🏛️ `008-regulatory-reporting-bacen.md`: Design of BACEN SCR (Doc 3040) risk classification and PSTAW10 zero-sum settlement simulation.
+*   📊 `009-operational-reconciliation-dashboard.md`: Real-time double-entry operational reconciliation architecture and Grafana integration.
 
 ---
 
@@ -298,10 +328,10 @@ Key engineering choices are documented in the `docs/adr/` directory:
 *   [x] OFX statement generation
 *   [x] Bidirectional mTLS between internal services
 *   [x] Reconciliation and fee calculation COBOL jobs
-*   [ ] CNAB 240 generation (In Progress)
-*   [ ] Compound interest calculation (In Progress)
-*   [ ] Regulatory reporting simulation (BACEN SCR, PSTAW10)
-*   [ ] Operational reconciliation dashboard
+*   [x] CNAB 240 generation
+*   [x] Compound interest calculation
+*   [x] Regulatory reporting simulation (BACEN SCR, PSTAW10)
+*   [x] Operational reconciliation dashboard
 
 ---
 

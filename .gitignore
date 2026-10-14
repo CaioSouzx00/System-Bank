@@ -8,6 +8,7 @@ api-rust/**/*.pdb
 batch-cobol/bin/
 batch-cobol/io/input/*.dat
 batch-cobol/io/output/*.out
+batch-cobol/tests/output/
 
 # Variáveis de ambiente — NUNCA commitar
 infra/docker/.env

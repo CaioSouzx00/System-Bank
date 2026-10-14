@@ -5,10 +5,10 @@
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT INPUT-FILE ASSIGN TO "io/input/rust_input.dat"
+           SELECT INPUT-FILE ASSIGN TO DYNAMIC WS-INPUT-PATH
                ORGANIZATION IS LINE SEQUENTIAL
                FILE STATUS IS WS-INPUT-STATUS.
-           SELECT OUTPUT-FILE ASSIGN TO "io/output/cnab240.txt"
+           SELECT OUTPUT-FILE ASSIGN TO DYNAMIC WS-OUTPUT-PATH
                ORGANIZATION IS LINE SEQUENTIAL
                FILE STATUS IS WS-OUTPUT-STATUS.
 
@@ -28,6 +28,9 @@
        01  WS-FILE-STATUS.
            05 WS-INPUT-STATUS    PIC X(2).
            05 WS-OUTPUT-STATUS   PIC X(2).
+
+       01  WS-INPUT-PATH         PIC X(200) VALUE "io/input/rust_input.dat".
+       01  WS-OUTPUT-PATH        PIC X(200) VALUE "io/output/cnab240.txt".
 
        01  WS-EOF-FLAG           PIC X VALUE 'N'.
            88  EOF-REACHED       VALUE 'Y'.
@@ -85,6 +88,15 @@
            STOP RUN.
 
        1000-INITIALIZE.
+           ACCEPT WS-INPUT-PATH FROM ENVIRONMENT 'INPUT_FILE'
+           IF WS-INPUT-PATH = SPACES
+               MOVE "io/input/rust_input.dat" TO WS-INPUT-PATH
+           END-IF
+           ACCEPT WS-OUTPUT-PATH FROM ENVIRONMENT 'OUTPUT_FILE'
+           IF WS-OUTPUT-PATH = SPACES
+               MOVE "io/output/cnab240.txt" TO WS-OUTPUT-PATH
+           END-IF
+
            OPEN INPUT INPUT-FILE
            IF WS-INPUT-STATUS NOT = '00'
                DISPLAY 'ERRO AO ABRIR INPUT-FILE: ' WS-INPUT-STATUS

@@ -1,0 +1,2 @@
+T1                                   1111                                 TRANSFER  
+T2                                   2222                                 DEBIT     

@@ -99,8 +99,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Build COBOL builder image
+        run: docker build -t cobol-builder --target builder batch-cobol/
+
       - name: Compilar todos os programas
-        run: docker run --rm -v ${{ github.workspace }}/batch-cobol:/app -w /app gnucobol/gnucobol:3.2 make all
+        run: docker run --rm -v ${{ github.workspace }}/batch-cobol:/app -w /app cobol-builder make all
 
       - name: Upload COBOL binaries
         uses: actions/upload-artifact@v4
@@ -121,12 +124,15 @@ jobs:
           name: cobol-binaries
           path: batch-cobol/bin/
           
+      - name: Build COBOL builder image
+        run: docker build -t cobol-builder --target builder batch-cobol/
+
       - name: Executar testes COBOL
         working-directory: batch-cobol
         run: |
           chmod +x tests/run-tests.sh
           chmod +x bin/*
-          docker run --rm -v ${{ github.workspace }}/batch-cobol:/app -w /app gnucobol/gnucobol:3.2 ./tests/run-tests.sh | tee test-results.tap
+          docker run --rm -v ${{ github.workspace }}/batch-cobol:/app -w /app cobol-builder ./tests/run-tests.sh | tee test-results.tap
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
