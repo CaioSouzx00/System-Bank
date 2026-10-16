@@ -15,22 +15,19 @@ pub async fn get_dashboard_metrics(db: &PgPool) -> AppResult<OperationalDashboar
         "SELECT COALESCE(SUM(amount), 0) FROM ledger_entries WHERE entry_type = 'DEBIT'"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(Decimal::ZERO);
+    .await?;
 
     let total_credit: Decimal = sqlx::query_scalar!(
         "SELECT COALESCE(SUM(amount), 0) FROM ledger_entries WHERE entry_type = 'CREDIT'"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(Decimal::ZERO);
+    .await?;
 
     let total_ledger_entries: i64 = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM ledger_entries"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let net_discrepancy = (total_debit - total_credit).abs();
     let is_balanced = net_discrepancy.is_zero();
@@ -46,29 +43,25 @@ pub async fn get_dashboard_metrics(db: &PgPool) -> AppResult<OperationalDashboar
     // 2. Integridade Transacional
     let total_transactions: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM transactions")
         .fetch_one(db)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
     let processed_transactions: i64 = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM transactions WHERE status = 'PROCESSED'"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let pending_transactions: i64 = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM transactions WHERE status = 'PENDING'"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let failed_transactions: i64 = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM transactions WHERE status = 'FAILED'"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let orphan_transactions: i64 = sqlx::query_scalar!(
         r#"
@@ -79,8 +72,7 @@ pub async fn get_dashboard_metrics(db: &PgPool) -> AppResult<OperationalDashboar
         "#
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let transactions = TransactionIntegrityMetrics {
         total_transactions,
@@ -93,28 +85,23 @@ pub async fn get_dashboard_metrics(db: &PgPool) -> AppResult<OperationalDashboar
     // 3. Integridade de Contas
     let total_accounts: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM accounts")
         .fetch_one(db)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
     let active_accounts: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM accounts WHERE status = 'ACTIVE'")
         .fetch_one(db)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
     let blocked_accounts: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM accounts WHERE status = 'BLOCKED'")
         .fetch_one(db)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
     let negative_balance_accounts: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM accounts WHERE balance < 0")
         .fetch_one(db)
-        .await?
-        .unwrap_or(0);
+        .await?;
 
     let total_custody_balance: Decimal = sqlx::query_scalar!("SELECT COALESCE(SUM(balance), 0) FROM accounts")
         .fetch_one(db)
-        .await?
-        .unwrap_or(Decimal::ZERO);
+        .await?;
 
     let discrepant_accounts_count: i64 = 0; // Contas sem divergência entre saldo e lançamentos
 
@@ -155,8 +142,7 @@ pub async fn get_dashboard_metrics(db: &PgPool) -> AppResult<OperationalDashboar
         "#
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let divergent_today: i64 = sqlx::query_scalar!(
         r#"
@@ -168,15 +154,13 @@ pub async fn get_dashboard_metrics(db: &PgPool) -> AppResult<OperationalDashboar
         "#
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let running_jobs: i64 = sqlx::query_scalar!(
         "SELECT COUNT(*) FROM batch_jobs WHERE status = 'RUNNING'"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let batch = BatchJobSummary {
         last_reconciliation_date,

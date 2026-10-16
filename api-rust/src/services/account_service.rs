@@ -76,8 +76,7 @@ async fn generate_account_number(db: &PgPool, agency: &str) -> AppResult<String>
         agency
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let number = count + 1;
     // Formato: NNNNNNN-D (7 dígitos + dígito verificador simples)

@@ -183,6 +183,7 @@ The architecture integrates principles derived from financial compliance standar
 ```text
 system-bank/
 ├── api-rust/          # 🦀 Modern API Layer (Rust, Axum, OpenTelemetry)
+├── app-flutter/       # 📱 Modern Flutter Mobile, Tablet & Web Client
 ├── batch-cobol/       # 📼 Legacy Processing Engine (GnuCOBOL 3.2)
 ├── migrations/        # 🐘 Sequenced PostgreSQL schema migrations
 ├── infra/docker/      # 🐳 Container orchestration (RabbitMQ, Postgres, OTel, etc.)
