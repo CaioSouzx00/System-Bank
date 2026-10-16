@@ -142,15 +142,13 @@ pub async fn generate_pstaw10(
         "SELECT COUNT(*) FROM accounts WHERE status = 'ACTIVE'"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(0);
+    .await?;
 
     let total_custody: Decimal = sqlx::query_scalar!(
         "SELECT COALESCE(SUM(balance), 0) FROM accounts WHERE balance > 0"
     )
     .fetch_one(db)
-    .await?
-    .unwrap_or(Decimal::ZERO);
+    .await?;
 
     let transactions = sqlx::query!(
         r#"
@@ -188,8 +186,7 @@ pub async fn generate_pstaw10(
     if !instruments.iter().any(|i| i.instrument == "PIX") {
         let pix_count: i64 = sqlx::query_scalar!("SELECT COUNT(*) FROM pix_keys")
             .fetch_one(db)
-            .await?
-            .unwrap_or(0);
+            .await?;
         instruments.push(Pstaw10InstrumentSummary {
             instrument: "PIX".to_string(),
             transaction_count: pix_count,
