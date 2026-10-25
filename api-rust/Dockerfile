@@ -1,5 +1,8 @@
 FROM rust:latest AS builder
 
+ARG DATABASE_URL=postgres://bankuser:bankpass@host.docker.internal:5432/system_bank
+ENV DATABASE_URL=$DATABASE_URL
+
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir -p src/bin && echo "fn main() {}" > src/main.rs && echo "fn main() {}" > src/bin/worker.rs && touch src/lib.rs

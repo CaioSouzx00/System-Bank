@@ -40,6 +40,12 @@ services:
     build:
       context: ../../api-rust
       dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgres://${POSTGRES_USER:-bankuser}:${POSTGRES_PASSWORD:-bankpass}@host.docker.internal:5432/${POSTGRES_DB:-system_bank}
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     container_name: system-bank-api
     restart: unless-stopped
     depends_on:
@@ -50,8 +56,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-bankuser}:${POSTGRES_PASSWORD:-bankpass}@postgres:5432/${POSTGRES_DB:-system_bank}
       AMQP_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRY_SECS: ${JWT_EXPIRY_SECS:-900}
+      JWT_PUBLIC_KEY_B64: ${JWT_PUBLIC_KEY_B64}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       RUST_LOG: info
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       CA_CERT_B64: ${CA_CERT_B64}
@@ -64,6 +70,18 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
+
+  web:
+    build:
+      context: ../../app-flutter
+      dockerfile: Dockerfile
+    container_name: system-bank-web
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    depends_on:
+      api:
+        condition: service_started
 
   cobol-worker:
     build:

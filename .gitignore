@@ -4,6 +4,12 @@
 api-rust/target/
 api-rust/**/*.pdb
 
+# Binários e executáveis
+*.exe
+*.dll
+*.so
+*.dylib
+
 # COBOL binários compilados
 batch-cobol/bin/
 batch-cobol/io/input/*.dat

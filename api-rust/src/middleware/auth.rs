@@ -3,6 +3,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -16,6 +17,41 @@ pub struct Claims {
     pub role: String, // CLIENT | OPERATOR | ADMIN
     pub exp: usize,
     pub iat: usize,
+}
+
+/// Carrega a chave pública RSA para validação do JWT assinado com RS256.
+/// Suporta:
+/// 1. `JWT_PUBLIC_KEY_B64`: PEM codificado em Base64 (ideal para env vars/Docker sem quebra de formatação)
+/// 2. `JWT_PUBLIC_KEY`: String PEM pura, tolerando quebras de linha literais `\n` ou multilinha
+pub fn load_jwt_decoding_key() -> Result<DecodingKey, AppError> {
+    if let Ok(b64) = std::env::var("JWT_PUBLIC_KEY_B64") {
+        let trimmed = b64.trim();
+        if !trimmed.is_empty() {
+            let pem_bytes = STANDARD
+                .decode(trimmed)
+                .map_err(|_| AppError::Unauthorized)?;
+            return DecodingKey::from_rsa_pem(&pem_bytes).map_err(|_| AppError::Unauthorized);
+        }
+    }
+
+    if let Ok(raw_key) = std::env::var("JWT_PUBLIC_KEY") {
+        let trimmed = raw_key.trim();
+        if !trimmed.is_empty() {
+            if trimmed.starts_with("-----BEGIN") {
+                let formatted = trimmed.replace("\\n", "\n");
+                return DecodingKey::from_rsa_pem(formatted.as_bytes())
+                    .map_err(|_| AppError::Unauthorized);
+            } else if let Ok(decoded) = STANDARD.decode(trimmed) {
+                if let Ok(key) = DecodingKey::from_rsa_pem(&decoded) {
+                    return Ok(key);
+                }
+            }
+            return DecodingKey::from_rsa_pem(trimmed.as_bytes())
+                .map_err(|_| AppError::Unauthorized);
+        }
+    }
+
+    Err(AppError::Unauthorized)
 }
 
 /// Extrai e valida o JWT do header Authorization: Bearer <token>
@@ -32,8 +68,7 @@ pub async fn require_auth(
         .and_then(|v| v.strip_prefix("Bearer "))
         .ok_or(AppError::Unauthorized)?;
 
-    let public_key = std::env::var("JWT_PUBLIC_KEY").map_err(|_| AppError::Unauthorized)?;
-    let key = DecodingKey::from_rsa_pem(public_key.as_bytes()).map_err(|_| AppError::Unauthorized)?;
+    let key = load_jwt_decoding_key()?;
     
     let mut validation = Validation::new(Algorithm::RS256);
     // Assegura que o token será validado considerando a expiração (exp)
@@ -188,5 +223,30 @@ wJpoe343b/CWvU+OPAyVIySAD/Mxe/qYs1Iqwljsd93Zsx7BLt9gYos=\n\
         let result = decode::<Claims>(&token, &key, &validation);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().kind(), &jsonwebtoken::errors::ErrorKind::InvalidSignature);
+    }
+
+    #[test]
+    fn test_load_jwt_decoding_key_from_b64() {
+        std::env::remove_var("JWT_PUBLIC_KEY");
+        let b64 = STANDARD.encode(PUBLIC_KEY_PEM);
+        std::env::set_var("JWT_PUBLIC_KEY_B64", &b64);
+
+        let key = load_jwt_decoding_key();
+        assert!(key.is_ok());
+
+        std::env::remove_var("JWT_PUBLIC_KEY_B64");
+    }
+
+    #[test]
+    fn test_load_jwt_decoding_key_with_escaped_newlines() {
+        std::env::remove_var("JWT_PUBLIC_KEY_B64");
+        let raw_str = String::from_utf8(PUBLIC_KEY_PEM.to_vec()).unwrap();
+        let escaped = raw_str.replace('\n', "\\n");
+        std::env::set_var("JWT_PUBLIC_KEY", &escaped);
+
+        let key = load_jwt_decoding_key();
+        assert!(key.is_ok());
+
+        std::env::remove_var("JWT_PUBLIC_KEY");
     }
 }

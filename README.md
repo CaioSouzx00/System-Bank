@@ -212,7 +212,10 @@ system-bank/
 2.  **Configure the environment:**
     ```bash
     cp infra/docker/.env.example infra/docker/.env
-    # Adjust variables (e.g., JWT_PUBLIC_KEY, passwords) as needed.
+    # A pre-configured development RSA public key is already included for RS256 JWT validation.
+    # To generate new TLS mTLS certificates and RSA key pairs:
+    bash scripts/generate-certs.sh
+    bash scripts/generate-jwt-keys.sh
     ```
 
 3.  **Deploy the infrastructure:**
@@ -316,6 +319,7 @@ Key engineering choices are documented in the `docs/adr/` directory:
 *   📼 `003-cobol-subprocess.md`: Architectural reasoning behind isolating GnuCOBOL via subprocesses rather than unsafe FFI.
 *   🏛️ `008-regulatory-reporting-bacen.md`: Design of BACEN SCR (Doc 3040) risk classification and PSTAW10 zero-sum settlement simulation.
 *   📊 `009-operational-reconciliation-dashboard.md`: Real-time double-entry operational reconciliation architecture and Grafana integration.
+*   🛡️ `010-jwt-rs256-asymmetric-authentication.md`: RS256 asymmetric authentication and OAuth2/OIDC Resource Server separation.
 
 ---
 
@@ -337,5 +341,7 @@ Key engineering choices are documented in the `docs/adr/` directory:
 ---
 
 ## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 MIT © [Caio Daniel Souza](https://github.com/CaioSouzx00)
