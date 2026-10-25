@@ -17,3 +17,4 @@ Cada arquivo documenta **o contexto, a decisão e as consequências** de uma esc
 | [007](./007-rabbitmq-dlq-strategy.md) | Estratégia de Dead-Letter Queue e reprocessamento manual | Aceito |
 | [008](./008-regulatory-reporting-bacen.md) | Simulação e Geração de Relatórios Regulatórios BACEN (SCR e PSTAW10) | Aceito |
 | [009](./009-operational-reconciliation-dashboard.md) | Painel Operacional de Reconciliação Contábil e Auditoria | Aceito |
+| [010](./010-jwt-rs256-asymmetric-authentication.md) | Autenticação JWT Assimétrica com RS256 (Resource Server vs IdP) | Aceito |
